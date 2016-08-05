@@ -1,6 +1,6 @@
 
 PROG := dnsallow
-SRCS := main.c queue.c dns.c
+SRCS := main.c queue.c ip.c dns.c
 OBJS := $(SRCS:.c=.o)
 
 MYCFLAGS := $(shell pkg-config --cflags libnetfilter_queue)
@@ -12,7 +12,6 @@ LIBS := $(shell pkg-config --libs libnetfilter_queue)
 
 $(PROG): $(OBJS)
 	$(CC) -o $@ $(OBJS) $(LDFLAGS) $(LIBS)
-	sudo setcap cap_net_admin+ep dnsallow
 
 clean:
 	$(RM) $(OBJS) $(PROG)

@@ -44,9 +44,15 @@ void hexdump(const unsigned char *data, size_t len)
     }
 }
 
-static void pkt_callback(const unsigned char *buf, size_t buflen)
+static void pkt_callback(const unsigned char *buf, unsigned buflen)
 {
+    struct dns_info info;
+
     hexdump(buf, buflen);
+    if (parse_ip_dns(buf, buflen, &info) == 0) {
+        fprintf(stderr, "Parsing failed\n");
+        return;
+    }
 }
 
 static volatile int running = 1;

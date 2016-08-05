@@ -20,8 +20,6 @@ Ideas
 -----
 Ideas and TODO items
 
- - Accept IPv4 packets.
- - Accept IPv6 packets.
  - Accept UDP queries (A, AAAA).
  - Handle IPv4 addresses in responses and ipset.
  - Handle IPv6 addresses in responses and ipset.
