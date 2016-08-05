@@ -60,29 +60,38 @@ static void parse_header(const unsigned char *buf, struct dns_header *hdr)
     hdr->arcount = (buf[10] << 8) | buf[11];
 }
 
-static int parse_name(const unsigned char *buf, unsigned buflen,
-        unsigned int offset, char *name)
+static unsigned parse_name(const unsigned char *buf, unsigned buflen,
+        unsigned offset, char *name)
 {
-    unsigned int label_length;
-    unsigned int namelen = 0;
+    unsigned label_length;
+    unsigned namelen = 0;
 
     while (offset < buflen) {
         label_length = buf[offset];
+
+        if (label_length == 0) {
+            /* Reached the root, the last dot should be dropped later. */
+            break;
+        } else {
+            offset++;  /* skip label length */
+        }
+
         if (buflen - offset < label_length || namelen + label_length + 1 > 256)
             return 0;
 
-        if (label_length == 0)
-            break;
-
-        offset++;  /* skip label length */
         memcpy(name + namelen, buf + offset, label_length);
         name[namelen + label_length] = '.';
-        namelen += label_length + 1;  /* label plus dot */
+        namelen += label_length + 1;  /* label plus dot (or length plus name) */
         offset += label_length;
     }
 
     if (namelen > 0) {
+        /* Drop trailing dot. */
         name[namelen - 1] = '\0';
+        if (strlen(name) != namelen - 1) {
+            /* Reject name with NUL byte which causes string truncation */
+            return 0;
+        }
     }
     return namelen;
 }
@@ -113,7 +122,7 @@ static int parse_dns(const unsigned char *buf, unsigned buflen, struct dns_info 
 
 int parse_ip_dns(const unsigned char *buf, unsigned buflen, struct dns_info *result)
 {
-    unsigned int offset;
+    unsigned offset;
     uint8_t protocol;
 
     offset = parse_ip(buf, buflen, &protocol);
