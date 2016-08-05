@@ -60,11 +60,14 @@ static void parse_header(const unsigned char *buf, struct dns_header *hdr)
     hdr->arcount = (buf[10] << 8) | buf[11];
 }
 
+/* Tries to parse a name, returning the number of bytes that are consumed by
+ * this name on the wire. (0 on failure). */
 static unsigned parse_name(const unsigned char *buf, unsigned buflen,
         unsigned offset, char *name)
 {
     unsigned label_length;
-    unsigned namelen = 0;
+    unsigned namelen = 0, wirelen = 0;
+    const unsigned orig_offset = offset;
 
     while (offset < buflen) {
         label_length = buf[offset];
@@ -72,6 +75,20 @@ static unsigned parse_name(const unsigned char *buf, unsigned buflen,
         if (label_length == 0) {
             /* Reached the root, the last dot should be dropped later. */
             break;
+        } else if ((label_length & 0xc0) == 0xc0) {  /* compressed name */
+            if (buflen - offset < 2)
+                return 0;
+
+            offset = ((label_length & 0x3f) << 8) | buf[offset + 1];
+            /* Pointers are invalid if they point to newer occurences. */
+            if (offset >= orig_offset)
+                return 0;
+
+            if (wirelen == 0) {
+                /* First pointer: account for the prefix and the pointer. */
+                wirelen = namelen + 2;
+            }
+            continue;
         } else {
             offset++;  /* skip label length */
         }
@@ -92,8 +109,9 @@ static unsigned parse_name(const unsigned char *buf, unsigned buflen,
             /* Reject name with NUL byte which causes string truncation */
             return 0;
         }
+        namelen++; /* Account for the zero in the wire format. */
     }
-    return namelen;
+    return wirelen ? wirelen : namelen;
 }
 
 static int parse_dns(const unsigned char *buf, unsigned buflen, struct dns_info *result)
