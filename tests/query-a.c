@@ -20,7 +20,7 @@
 #include <string.h>
 #include "dnsallow.h"
 
-unsigned char ip_packet[] = {
+static unsigned char ip_packet[] = {
     0x45, 0x00, 0x00, 0x49, 0xc7, 0xa0, 0x00, 0x00, 0x30, 0x11, 0xa8, 0xe9,
     0x08, 0x08, 0x08, 0x08, 0x0a, 0x09, 0x00, 0x02, 0x00, 0x35, 0xd0, 0xb2,
     0x00, 0x35, 0x9b, 0x1d, 0x77, 0x2c, 0x81, 0x80, 0x00, 0x01, 0x00, 0x01,
@@ -29,6 +29,30 @@ unsigned char ip_packet[] = {
     0x01, 0x00, 0x01, 0x00, 0x00, 0x52, 0xc4, 0x00, 0x04, 0x5d, 0xb8, 0xd8,
     0x22
 };
+
+static int address_matches(struct address *addr, const char *addrstr_expect)
+{
+    char addrstr[64];
+    const char *dst;
+
+    if (addr->family != AF_INET) {
+        fprintf(stderr, "Failed: unexpected family %d\n", addr->family);
+        return 1;
+    }
+
+    dst = inet_ntop(AF_INET, (void *)&addr->ip4_addr, addrstr, sizeof(addrstr));
+    if (!dst) {
+        fprintf(stderr, "Failed: missing address\n");
+        return 1;
+    }
+
+    if (strcmp(addrstr, addrstr_expect)) {
+        fprintf(stderr, "Failed: invalid address: \"%s\"\n", addrstr);
+        return 1;
+    }
+
+    return 0;
+}
 
 int main(void)
 {
@@ -45,6 +69,13 @@ int main(void)
         fprintf(stderr, "Failed: name is \"%s\"\n", info.name);
         return 1;
     }
+
+    if (info.count != 1) {
+        fprintf(stderr, "Failed: invalid addresses count %d\n", info.count);
+        return 1;
+    }
+
+    address_matches(&info.entries[0], "93.184.216.34");
 
     puts("Passed");
     return 0;

@@ -26,6 +26,9 @@
 #include <string.h>
 #include "dnsallow.h"
 
+/* The DNS class for the Internet domain. */
+#define DNS_CLASS_IN    0x0001
+
 struct dns_header {
     uint16_t id;
     uint16_t flags;
@@ -114,9 +117,56 @@ static unsigned parse_name(const unsigned char *buf, unsigned buflen,
     return wirelen ? wirelen : namelen;
 }
 
+/* Parses the name, type and class, returns the offset after that or 0 if the
+ * format is invalid. */
+static unsigned parse_entry(const unsigned char *buf, unsigned buflen,
+        unsigned offset, char *name, uint16_t *type, uint16_t *clss)
+{
+    unsigned r;
+
+    r = parse_name(buf, buflen, offset, name);
+    if (r == 0)
+        return 0;
+
+    /* Need room for name, type, class (and more data after that). */
+    if (offset + r + 4 >= buflen)
+        return 0;
+
+    *type = (buf[offset + r] << 8) | buf[offset + r + 1];
+    *clss = (buf[offset + r + 2] << 8) | buf[offset + r + 3];
+    return r + 4;
+}
+
+static struct address *result_add(struct dns_info *info, int family)
+{
+    struct address *addr = &info->entries[info->count++];
+    addr->family = family;
+    return addr;
+}
+
+static void parse_rdata(const unsigned char *buf, uint16_t type,
+        unsigned rdlength, struct dns_info *result)
+{
+    struct address *addr;
+
+    switch (type) {
+    case 1:     /* A */
+        if (rdlength != 4)
+            return;
+
+        addr = result_add(result, AF_INET);
+        memcpy(&addr->ip4_addr, buf, 4);
+        break;
+    case 28:    /* AAAA */
+        break;
+    }
+}
+
 static int parse_dns(const unsigned char *buf, unsigned buflen, struct dns_info *result)
 {
     struct dns_header hdr;
+    unsigned offset, r, i;
+    uint16_t type, clss;
     char name[256];
 
     memset(result, 0, sizeof(*result));
@@ -125,17 +175,52 @@ static int parse_dns(const unsigned char *buf, unsigned buflen, struct dns_info 
         return 0;
 
     parse_header(buf, &hdr);
+    offset = 12;
 
     /* Can only handle one question for now. */
     if (hdr.qdcount != 1)
         return 0;
 
-    if (parse_name(buf, buflen, 12, name) == 0)
+    /* Parse question (ignore query type). */
+    r = parse_entry(buf, buflen, offset, name, &type, &clss);
+    if (r == 0 || clss != DNS_CLASS_IN || name[0] == '\0')
         return 0;
 
     strcpy(result->name, name);
+    offset += r;
 
-    return 1;
+    /* Parse answers (best effort, return as many valid results as possible). */
+    for (i = 0; i < hdr.ancount; i++) {
+        r = parse_entry(buf, buflen, offset, name, &type, &clss);
+        if (r == 0 || clss != DNS_CLASS_IN)
+            break;
+
+        /* Skip name, type, class */
+        offset += r;
+
+        /* Check for TTL and RDLENGTH */
+        if (offset + 6 > buflen)
+            break;
+
+        /* Skip TTL */
+        offset += 4;
+
+        unsigned rdlength = (buf[offset] << 8) | buf[offset + 1];
+        if (offset + 2 + rdlength > buflen)
+            break;
+
+        /* Skip RDLENGTH */
+        offset += 2;
+
+        parse_rdata(buf + offset, type, rdlength, result);
+        offset += rdlength;
+
+        /* Just truncate the number of entries if there are too many. */
+        if (result->count == DNS_MAX_ENTRIES)
+            break;
+    }
+
+    return result->count;
 }
 
 int parse_ip_dns(const unsigned char *buf, unsigned buflen, struct dns_info *result)

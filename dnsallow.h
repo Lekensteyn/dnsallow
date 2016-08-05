@@ -35,7 +35,7 @@ struct address {
     union {
         struct in_addr ip4_addr;
         struct in6_addr ip6_addr;
-    } addr;
+    };
 };
 struct dns_info {
     /* RFC 1035 limits the name to 255 (add one for terminating zero). */
