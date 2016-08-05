@@ -1,4 +1,5 @@
 *.o
 dnsallow
+tests/query-a
 
 .*.sw?

@@ -1,7 +1,11 @@
 
 PROG := dnsallow
 SRCS := main.c queue.c ip.c dns.c
+TESTS_SRCS := tests/query-a.c
+
 OBJS := $(SRCS:.c=.o)
+TESTS := $(TESTS_SRCS:.c=)
+TESTS_DEPS := $(filter-out main.o,$(OBJS))
 
 MYCFLAGS := $(shell pkg-config --cflags libnetfilter_queue)
 MYCFLAGS += -Wall -Wextra
@@ -16,4 +20,12 @@ $(PROG): $(OBJS)
 clean:
 	$(RM) $(OBJS) $(PROG)
 
-.PHONY: clean
+$(TESTS): % : %.c $(TESTS_DEPS)
+	$(CC) -o $@ -I. $< $(TESTS_DEPS) $(LDFLAGS) $(LIBS)
+
+check: $(TESTS)
+	@fail=false; for tst in $(TESTS); do \
+		printf '%s: ' "$$tst" && "$$tst" || fail=true; \
+	done; ! $$fail
+
+.PHONY: clean check
