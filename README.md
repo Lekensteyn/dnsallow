@@ -20,10 +20,11 @@ Ideas
 -----
 Ideas and TODO items
 
- - Accept UDP queries (A, AAAA).
  - Handle IPv4 addresses in responses and ipset.
  - Handle IPv6 addresses in responses and ipset.
- - What to do with CNAME?
+ - Allow CNAME records to satisfy policies. If the policy allows X, and a
+   response for X contains CNAME Y, then addresses in the answer for Y should
+   also be accepted by the policy.
  - Accept TCP responses. Will likely not happen as TCP is often not used for
    simple DNS queries/responses and requires tracking of the TCP stream.
  - Rewrite the DNS response. Possibly out of scope for this packet since

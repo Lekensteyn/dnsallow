@@ -1,7 +1,7 @@
 
 PROG := dnsallow
 SRCS := main.c queue.c ip.c dns.c
-TESTS_SRCS := tests/query-a.c
+TESTS_SRCS := tests/query-a.c tests/query-aaaa.c
 
 OBJS := $(SRCS:.c=.o)
 TESTS := $(TESTS_SRCS:.c=)

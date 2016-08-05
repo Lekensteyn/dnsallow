@@ -158,6 +158,11 @@ static void parse_rdata(const unsigned char *buf, uint16_t type,
         memcpy(&addr->ip4_addr, buf, 4);
         break;
     case 28:    /* AAAA */
+        if (rdlength != 16)
+            return;
+
+        addr = result_add(result, AF_INET6);
+        memcpy(&addr->ip6_addr, buf, 16);
         break;
     }
 }
@@ -220,9 +225,14 @@ static int parse_dns(const unsigned char *buf, unsigned buflen, struct dns_info 
             break;
     }
 
-    return result->count;
+    return result->count ? 1 : 0;
 }
 
+/**
+ * Tries to parse the addresses in the answer from a DNS response. If no
+ * addresses could be parsed, 0 is returned. A positive number otherwise (check
+ * result->count for the exact number of answers).
+ */
 int parse_ip_dns(const unsigned char *buf, unsigned buflen, struct dns_info *result)
 {
     unsigned offset;
