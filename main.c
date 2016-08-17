@@ -79,6 +79,7 @@ static int set_signal_handlers(void)
 int main(int argc, const char *argv[])
 {
     struct input_queue *iq;
+    struct ipset_state *ipset_state;
 
     if (set_signal_handlers() < 0)
         return 1;
@@ -87,11 +88,18 @@ int main(int argc, const char *argv[])
     if (!iq)
         return 1;
 
+    ipset_state = ipset_init();
+    if (!ipset_state) {
+        ipset_fini(ipset_state);
+        return 1;
+    }
+
     while (running && queue_handle(iq))
         ;
 
     fprintf(stderr, "Exiting.\n");
 
+    ipset_fini(ipset_state);
     queue_fini(iq);
     return 0;
 }

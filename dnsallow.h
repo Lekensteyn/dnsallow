@@ -48,3 +48,9 @@ struct dns_info {
 };
 
 int parse_ip_dns(const unsigned char *buf, unsigned buflen, struct dns_info *result);
+
+/* ipset.c */
+struct ipset_state;
+struct ipset_state *ipset_init(void);
+void ipset_add_ip(struct ipset_state *state, struct address *addr);
+void ipset_fini(struct ipset_state *state);

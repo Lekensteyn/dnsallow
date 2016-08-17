@@ -1,15 +1,15 @@
 
 PROG := dnsallow
-SRCS := main.c queue.c ip.c dns.c
+SRCS := main.c queue.c ip.c dns.c ipset.c
 TESTS_SRCS := tests/query-a.c tests/query-aaaa.c
 
 OBJS := $(SRCS:.c=.o)
 TESTS := $(TESTS_SRCS:.c=)
 TESTS_DEPS := $(filter-out main.o,$(OBJS))
 
-MYCFLAGS := $(shell pkg-config --cflags libnetfilter_queue)
+MYCFLAGS := $(shell pkg-config --cflags libnetfilter_queue libipset)
 MYCFLAGS += -Wall -Wextra
-LIBS := $(shell pkg-config --libs libnetfilter_queue)
+LIBS := $(shell pkg-config --libs libnetfilter_queue libipset)
 
 .c.o: dnsallow.h
 	$(CC) -c $(MYCFLAGS) $(CFLAGS) -o $@ $<
