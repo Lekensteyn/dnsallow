@@ -44,14 +44,21 @@ void hexdump(const unsigned char *data, size_t len)
     }
 }
 
-static void pkt_callback(const unsigned char *buf, unsigned buflen)
+static void pkt_callback(const unsigned char *buf, unsigned buflen, void *data)
 {
     struct dns_info info;
+    struct ipset_state *ipset_state = data;
+    unsigned i;
 
     hexdump(buf, buflen);
     if (parse_ip_dns(buf, buflen, &info) == 0) {
         fprintf(stderr, "Parsing failed\n");
         return;
+    }
+
+    /* TODO apply policy here rather than adding everything. */
+    for (i = 0; i < info.count; i++) {
+        ipset_add_ip(ipset_state, &info.entries[i]);
     }
 }
 
@@ -86,12 +93,12 @@ int main(int argc, const char *argv[])
     if (set_signal_handlers() < 0)
         return 1;
 
-    iq = queue_init(pkt_callback);
-    if (!iq)
+    ipset_state = ipset_init();
+    if (!ipset_state)
         return 1;
 
-    ipset_state = ipset_init();
-    if (!ipset_state) {
+    iq = queue_init(pkt_callback, ipset_state);
+    if (!iq) {
         ipset_fini(ipset_state);
         return 1;
     }
@@ -104,7 +111,7 @@ int main(int argc, const char *argv[])
     else
         fprintf(stderr, "Exiting.\n");
 
-    ipset_fini(ipset_state);
     queue_fini(iq);
+    ipset_fini(ipset_state);
     return 0;
 }

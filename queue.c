@@ -32,6 +32,7 @@ struct input_queue {
     struct nfq_handle *h;
     struct nfq_q_handle *qh;
     packet_callback *pkt_callback;
+    void *pkt_callback_data;
 };
 
 static struct nfq_handle *init_nfq(void)
@@ -80,6 +81,7 @@ static int queue_pkt_callback(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
     unsigned char *pktdata;
     int pkt_id, pktlen;
     struct nfqnl_msg_packet_hdr *ph = nfq_get_msg_packet_hdr(nfa);
+    (void)nfmsg;
 
     /* Should not happen, otherwise we cannot set a verdict. */
     if (!ph)
@@ -88,8 +90,8 @@ static int queue_pkt_callback(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
     pkt_id = ntohl(ph->packet_id);
     pktlen = nfq_get_payload(nfa, &pktdata);
 
-    iq->pkt_callback(pktdata, pktlen);
-    nfq_set_verdict(iq->qh, pkt_id, NF_ACCEPT, 0, NULL);
+    iq->pkt_callback(pktdata, pktlen, iq->pkt_callback_data);
+    nfq_set_verdict(qh, pkt_id, NF_ACCEPT, 0, NULL);
     return 0;
 }
 
@@ -114,7 +116,7 @@ static struct nfq_q_handle *init_nfq_queue(struct nfq_handle *h, int queue_num,
     return qh;
 }
 
-struct input_queue *queue_init(packet_callback *callback)
+struct input_queue *queue_init(packet_callback *callback, void *callback_data)
 {
     struct input_queue *iq;
 
@@ -123,6 +125,7 @@ struct input_queue *queue_init(packet_callback *callback)
         return NULL;
 
     iq->pkt_callback = callback;
+    iq->pkt_callback_data = callback_data;
 
     iq->h = init_nfq();
     if (!iq->h)

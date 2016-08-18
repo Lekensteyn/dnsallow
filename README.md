@@ -20,8 +20,6 @@ Ideas
 -----
 Ideas and TODO items
 
- - Handle IPv4 addresses in responses and ipset.
- - Handle IPv6 addresses in responses and ipset.
  - Allow CNAME records to satisfy policies. If the policy allows X, and a
    response for X contains CNAME Y, then addresses in the answer for Y should
    also be accepted by the policy.

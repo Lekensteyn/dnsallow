@@ -20,9 +20,9 @@
 
 /* queue.c */
 struct input_queue;
-typedef void packet_callback(const unsigned char *buf, unsigned buflen);
+typedef void packet_callback(const unsigned char *buf, unsigned buflen, void *data);
 
-struct input_queue *queue_init(packet_callback *callback);
+struct input_queue *queue_init(packet_callback *callback, void *callback_data);
 int queue_handle(struct input_queue *iq);
 void queue_fini(struct input_queue *iq);
 
