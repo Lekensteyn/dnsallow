@@ -49,6 +49,12 @@ struct dns_info {
 
 int parse_ip_dns(const unsigned char *buf, unsigned buflen, struct dns_info *result);
 
+/* policy.c */
+struct policy;
+struct policy *policy_init(void);
+int policy_check(struct policy *policy, const char *dnsname);
+void policy_fini(struct policy *policy);
+
 /* ipset.c */
 struct ipset_state;
 struct ipset_state *ipset_init(void);

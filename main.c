@@ -23,6 +23,7 @@
 #include <ctype.h>
 
 struct state {
+    struct policy *policy;
     struct ipset_state *ipset;
 };
 
@@ -60,7 +61,11 @@ static void pkt_callback(const unsigned char *buf, unsigned buflen, void *data)
         return;
     }
 
-    /* TODO apply policy here rather than adding everything. */
+    if (!policy_check(state->policy, info.name) == 0) {
+        fprintf(stderr, "Policy check failed for %s\n", info.name);
+        return;
+    }
+
     for (i = 0; i < info.count; i++) {
         ipset_add_ip(state->ipset, &info.entries[i]);
     }
@@ -92,6 +97,7 @@ static int set_signal_handlers(void)
 int main(int argc, const char *argv[])
 {
     int ret = 1;
+    struct policy *policy;
     struct input_queue *iq;
     struct ipset_state *ipset_state;
     struct state state;
@@ -99,10 +105,15 @@ int main(int argc, const char *argv[])
     if (set_signal_handlers() < 0)
         return 1;
 
-    ipset_state = ipset_init();
-    if (!ipset_state)
+    policy = policy_init();
+    if (!policy)
         return 1;
 
+    ipset_state = ipset_init();
+    if (!ipset_state)
+        goto cleanup_policy;
+
+    state.policy = policy;
     state.ipset = ipset_state;
     iq = queue_init(pkt_callback, &state);
     if (!iq)
@@ -120,5 +131,7 @@ int main(int argc, const char *argv[])
     queue_fini(iq);
 cleanup_ipset:
     ipset_fini(ipset_state);
+cleanup_policy:
+    policy_fini(policy);
     return ret;
 }

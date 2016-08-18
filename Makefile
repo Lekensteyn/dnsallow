@@ -6,7 +6,7 @@
 #   int-cap     - integration test (needs sudo and libcap newer than 2.25)
 
 PROG := dnsallow
-SRCS := main.c queue.c ip.c dns.c ipset.c
+SRCS := main.c queue.c ip.c dns.c policy.c ipset.c
 TESTS_SRCS := tests/query-a.c tests/query-aaaa.c
 INTEGRATION_TEST := tests/int-test.sh
 
