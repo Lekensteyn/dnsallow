@@ -24,6 +24,7 @@
 #include <libipset/data.h>
 #include "dnsallow.h"
 
+/* Setname X which can be used in "ipset list X". */
 #define SETNAME_IPV4 "dnsallow-ipv4"
 #define SETNAME_IPV6 "dnsallow-ipv6"
 

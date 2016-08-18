@@ -25,6 +25,9 @@
 #include <linux/netfilter.h>  /* for NF_ACCEPT */
 #include "dnsallow.h"
 
+/* The queue number to be passed to -j NFQUEUE --queue-num X */
+#define QUEUE_NUM   53
+
 struct input_queue {
     struct nfq_handle *h;
     struct nfq_q_handle *qh;
@@ -125,7 +128,7 @@ struct input_queue *queue_init(packet_callback *callback)
     if (!iq->h)
         goto err_init_nfq;
 
-    iq->qh = init_nfq_queue(iq->h, 53, iq);
+    iq->qh = init_nfq_queue(iq->h, QUEUE_NUM, iq);
     if (!iq->qh)
         goto err_init_nfq_queue;
 
