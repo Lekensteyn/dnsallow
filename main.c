@@ -55,11 +55,11 @@ static void pkt_callback(const unsigned char *buf, unsigned buflen)
     }
 }
 
-static volatile int running = 1;
+static volatile int signalled = 0;
 
 static void sighandler(int sig)
 {
-    running = 0;
+    signalled = sig;
 }
 
 static int set_signal_handlers(void)
@@ -71,6 +71,8 @@ static int set_signal_handlers(void)
     sa.sa_flags = 0;
 
     if (sigaction(SIGINT, &sa, NULL) < 0)
+        return -1;
+    if (sigaction(SIGTERM, &sa, NULL) < 0)
         return -1;
 
     return 0;
@@ -94,10 +96,13 @@ int main(int argc, const char *argv[])
         return 1;
     }
 
-    while (running && queue_handle(iq))
+    while (!signalled && queue_handle(iq))
         ;
 
-    fprintf(stderr, "Exiting.\n");
+    if (signalled)
+        fprintf(stderr, "Exiting due to signal %d.\n", signalled);
+    else
+        fprintf(stderr, "Exiting.\n");
 
     ipset_fini(ipset_state);
     queue_fini(iq);
