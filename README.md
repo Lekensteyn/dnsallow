@@ -20,6 +20,13 @@ Ideas
 -----
 Ideas and TODO items
 
+ - Argument processing:
+    - Allow nfqueue queue number to be changed (currently hardcoded to 53).
+    - Allow IPv4 and IPv6 ipset setnames to be changed (currently hardcoded to
+      `dnsallow-ipv4` and `dnsallow-ipv6`).
+    - Add `--help` option.
+ - Decide on policy file format (currently all names are accepted).
+ - Extend policy to further filter IP addresses?
  - Allow CNAME records to satisfy policies. If the policy allows X, and a
    response for X contains CNAME Y, then addresses in the answer for Y should
    also be accepted by the policy.
