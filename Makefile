@@ -1,7 +1,14 @@
+#
+# Targets:
+#   dnsallow    - main program
+#   check       - basic unit tests
+#   int         - integration test (needs root)
+#   int-cap     - integration test (needs sudo and libcap newer than 2.25)
 
 PROG := dnsallow
 SRCS := main.c queue.c ip.c dns.c ipset.c
 TESTS_SRCS := tests/query-a.c tests/query-aaaa.c
+INTEGRATION_TEST := tests/int-test.sh
 
 OBJS := $(SRCS:.c=.o)
 TESTS := $(TESTS_SRCS:.c=)
@@ -28,4 +35,12 @@ check: $(TESTS)
 		printf '%s: ' "$$tst" && "$$tst" || fail=true; \
 	done; ! $$fail
 
-.PHONY: clean check
+int: $(INTEGRATION_TEST)
+	$(INTEGRATION_TEST)
+
+int-cap: $(INTEGRATION_TEST)
+	@caps=cap_net_admin,cap_net_raw,cap_net_bind_service; \
+	sudo capsh --caps="cap_setuid,cap_setgid,cap_setpcap+ep $$caps+eip" \
+		--keep=1 --user=$$USER --addamb="$$caps" -- $(INTEGRATION_TEST)
+
+.PHONY: clean check int int-cap
