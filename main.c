@@ -22,6 +22,10 @@
 #include <signal.h>
 #include <ctype.h>
 
+struct state {
+    struct ipset_state *ipset;
+};
+
 void hexdump(const unsigned char *data, size_t len)
 {
     size_t i, j, linelen;
@@ -47,7 +51,7 @@ void hexdump(const unsigned char *data, size_t len)
 static void pkt_callback(const unsigned char *buf, unsigned buflen, void *data)
 {
     struct dns_info info;
-    struct ipset_state *ipset_state = data;
+    struct state *state = data;
     unsigned i;
 
     hexdump(buf, buflen);
@@ -58,7 +62,7 @@ static void pkt_callback(const unsigned char *buf, unsigned buflen, void *data)
 
     /* TODO apply policy here rather than adding everything. */
     for (i = 0; i < info.count; i++) {
-        ipset_add_ip(ipset_state, &info.entries[i]);
+        ipset_add_ip(state->ipset, &info.entries[i]);
     }
 }
 
@@ -87,8 +91,10 @@ static int set_signal_handlers(void)
 
 int main(int argc, const char *argv[])
 {
+    int ret = 1;
     struct input_queue *iq;
     struct ipset_state *ipset_state;
+    struct state state;
 
     if (set_signal_handlers() < 0)
         return 1;
@@ -97,11 +103,10 @@ int main(int argc, const char *argv[])
     if (!ipset_state)
         return 1;
 
-    iq = queue_init(pkt_callback, ipset_state);
-    if (!iq) {
-        ipset_fini(ipset_state);
-        return 1;
-    }
+    state.ipset = ipset_state;
+    iq = queue_init(pkt_callback, &state);
+    if (!iq)
+        goto cleanup_ipset;
 
     while (!signalled && queue_handle(iq))
         ;
@@ -110,8 +115,10 @@ int main(int argc, const char *argv[])
         fprintf(stderr, "Exiting due to signal %d.\n", signalled);
     else
         fprintf(stderr, "Exiting.\n");
+    ret = 0;
 
     queue_fini(iq);
+cleanup_ipset:
     ipset_fini(ipset_state);
-    return 0;
+    return ret;
 }
